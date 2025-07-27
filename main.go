@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"github.com/AgoCodeBro/gator/internal/config"
+	"os"
 )
 
 
@@ -12,14 +14,23 @@ func main() {
 	if err != nil {
 		fmt.Printf("%v", err)
 	}
+	curState := &state{cfg : &c}
+	
+	cmds := commands{registeredCommands : make(map[string]func(*state, command) error)}
 
-	if err = config.SetUser("Ago"); err != nil {
-		fmt.Printf("%v", err)
+	cmds.register("login", handlerLogin)
+
+	if len(os.Args) < 2 {
+		log.Fatal("Please include a command")
 	}
 
-	c, err = config.Read()
+	//build command struct
+	cmd := command{Name: os.Args[1], Args : os.Args[2:]}
+
+	err = cmds.run(curState, cmd)
 	if err != nil {
-		fmt.Printf("%v", err)
+		log.Fatal(err)
+
 	}
 
 	fmt.Printf("Database: %v\nUser: %v\n", c.DbURL, c.CurrentUserName)
