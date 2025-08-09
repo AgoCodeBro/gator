@@ -70,7 +70,24 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 	
 }
-	
+
+func handlerUsers(s *state, cmd command) error {
+	names, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to get the list of users:\n", err)
+	}
+
+	for _, name := range names {
+		if name == s.cfg.CurrentUserName {
+			fmt.Printf("* %v (current)\n", name)
+		} else {
+			fmt.Printf("* %v\n", name)
+		}
+	}
+
+	return nil
+}
+
 func handlerReset(s *state, cmd command) error {
 	err := s.db.Reset(context.Background())
 	if err != nil {
