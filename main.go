@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"log"
 	"github.com/AgoCodeBro/gator/internal/config"
+	"github.com/AgoCodeBro/gator/internal/database"
 	"os"
+	_ "github.com/lib/pq"
+	"database/sql"
 )
 
 
@@ -12,13 +15,17 @@ func main() {
 	fmt.Printf("I love you kylah!\n")
 	c, err := config.Read()
 	if err != nil {
-		fmt.Printf("%v", err)
+		fmt.Printf("Failed to read config: %v\n", err)
 	}
-	curState := &state{cfg : &c}
+	
+	db, err := sql.Open("postgres", c.DbURL)
+	
+	dbQueries := database.New(db)
+	
+	curState := &state{cfg : &c, db : dbQueries}
 	
 	cmds := commands{registeredCommands : make(map[string]func(*state, command) error)}
-
-	cmds.register("login", handlerLogin)
+	registerCommands(&cmds)
 
 	if len(os.Args) < 2 {
 		log.Fatal("Please include a command")
@@ -34,4 +41,10 @@ func main() {
 	}
 
 	fmt.Printf("Database: %v\nUser: %v\n", c.DbURL, c.CurrentUserName)
+}
+
+func registerCommands(cmds *commands) {	
+	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
 }
