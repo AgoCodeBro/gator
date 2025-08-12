@@ -31,8 +31,6 @@ func handlerLogin(s *state, cmd command) error{
 	return nil
 }
 
-
-
 func handlerRegister(s *state, cmd command) error {
 	if len(cmd.Args) == 0 {
 		return errors.New("Register expects a username as an argument")
@@ -93,6 +91,51 @@ func handlerReset(s *state, cmd command) error {
 	if err != nil {
 		return fmt.Errorf("Error occured while trying to reset the users table: %v", err)
 	}
+
+	return nil
+}
+
+func handlerAgg(s *state, cmd command) error {
+	url := "https://www.wagslane.dev/index.xml"
+	ctx := context.Background()
+
+	feed, err := fetchFeed(ctx, url)
+	if err != nil {
+		return fmt.Errorf("Error occured while fetching feed: %v\n", err)
+	}
+
+	fmt.Println(*feed)
+
+	return nil
+}
+
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.Args) < 2 {
+		return fmt.Errorf("Add feed expects a feed name and a url as arguments")
+	}
+
+	ctx := context.Background()
+
+	user, err := s.db.GetUser(ctx, s.cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("Failed to get the current user: %v", err)
+	}
+
+	feedArgs := database.CreateFeedParams{
+		ID : uuid.New(),
+		CreatedAt : time.Now(),
+		UpdatedAt : time.Now(),
+		Name : cmd.Args[0],
+		Url : cmd.Args[1],
+		UserID : user.ID,
+	}
+
+	_, err = s.db.CreateFeed(ctx, feedArgs)
+	if err != nil {
+		return fmt.Errorf("Failed to add the feed: %v", err)
+	}
+	
+	fmt.Printf("Added feed. Name: %v URL: %v", cmd.Args[0], cmd.Args[1])
 
 	return nil
 }
