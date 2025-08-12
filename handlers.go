@@ -109,17 +109,12 @@ func handlerAgg(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) < 2 {
 		return fmt.Errorf("Add feed expects a feed name and a url as arguments")
 	}
 
 	ctx := context.Background()
-
-	user, err := s.db.GetUser(ctx, s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Failed to get the current user: %v", err)
-	}
 
 	feedArgs := database.CreateFeedParams{
 		ID 		  : uuid.New(),
@@ -130,7 +125,7 @@ func handlerAddFeed(s *state, cmd command) error {
 		UserID 	  : user.ID,
 	}
 
-	_, err = s.db.CreateFeed(ctx, feedArgs)
+	_, err := s.db.CreateFeed(ctx, feedArgs)
 	if err != nil {
 		return fmt.Errorf("Failed to add the feed: %v", err)
 	}
@@ -176,7 +171,7 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) == 0 {
 		return fmt.Errorf("Follow command expects a url as an argument")
 	}
@@ -187,11 +182,6 @@ func handlerFollow(s *state, cmd command) error {
 	feed, err := s.db.GetFeed(ctx, url)
 	if err != nil {
 		return fmt.Errorf("Falied to find that feed: %v", err)
-	}
-
-	user, err := s.db.GetUser(ctx, s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Failed to find User ID: %v", err)
 	}
 
 	followArgs := database.CreateFeedFollowParams{
@@ -212,10 +202,10 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
-	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), s.cfg.CurrentUserName)	
+func handlerFollowing(s *state, cmd command, user database.User) error {
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.Name)	
 	if err != nil {
-		return fmt.Errorf("Failed to get the feed for %v: %v", s.cfg.CurrentUserName, err)
+		return fmt.Errorf("Failed to get the feed for %v: %v", user.Name, err)
 	}
 
 	fmt.Println("Following:")
