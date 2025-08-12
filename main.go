@@ -40,7 +40,6 @@ func main() {
 
 	}
 
-	fmt.Printf("Database: %v\nUser: %v\n", c.DbURL, c.CurrentUserName)
 }
 
 func registerCommands(cmds *commands) {	
@@ -50,4 +49,7 @@ func registerCommands(cmds *commands) {
 	cmds.register("users", handlerUsers)
 	cmds.register("agg", handlerAgg)
 	cmds.register("addfeed", handlerAddFeed)
+	cmds.register("feeds", handlerFeeds)
+	cmds.register("follow", handlerFollow)
+	cmds.register("following", handlerFollowing)
 }
