@@ -3,12 +3,13 @@ package main
 import(
 	"errors"
 	"fmt"
-	"github.com/AgoCodeBro/gator/internal/config"
 	"context"
+	"time"
+	"strconv"
+	"database/sql"
+	"github.com/AgoCodeBro/gator/internal/config"
 	"github.com/AgoCodeBro/gator/internal/database"
 	"github.com/google/uuid"
-	"time"
-	"database/sql"
 )
 
 func handlerLogin(s *state, cmd command) error{
@@ -96,15 +97,22 @@ func handlerReset(s *state, cmd command) error {
 }
 
 func handlerAgg(s *state, cmd command) error {
-	url := "https://www.wagslane.dev/index.xml"
-	ctx := context.Background()
-
-	feed, err := fetchFeed(ctx, url)
-	if err != nil {
-		return fmt.Errorf("Error occured while fetching feed: %v\n", err)
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("agg excpects 'time between requests' as an argument")
 	}
 
-	fmt.Println(*feed)
+	timeBetweenRequests, err := time.ParseDuration(cmd.Args[0])
+	if err != nil {
+		return err
+	}
+
+	ticker := time.NewTicker(timeBetweenRequests)
+	fmt.Println("Collecting Feeds every ", timeBetweenRequests)
+
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
+
 
 	return nil
 }
@@ -215,3 +223,56 @@ func handlerFollowing(s *state, cmd command, user database.User) error {
 
 	return nil
 }
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("Unfollow expects the url of the feed to be unfollowed as an argument")
+	}
+
+	unfollowArgs := database.UnfollowFeedParams {
+		UserID : user.ID,
+		Url    : cmd.Args[0],
+	}
+
+	err := s.db.UnfollowFeed(context.Background(), unfollowArgs)
+	if err != nil {
+		return fmt.Errorf("Failed to unfollow feed: %v", err)
+	}
+
+	fmt.Printf("Unfollowed %v\n", cmd.Args[0])
+
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	var limit int
+	var err error
+
+	if len(cmd.Args) == 0 {
+		limit = 2
+	} else {
+		limit, err = strconv.Atoi(cmd.Args[0])
+		if err != nil {
+			fmt.Errorf("Failed to convert string to int: %v", err)
+		}
+	}
+
+	getPostsArgs := database.GetPostForUserParams {
+		UserID : user.ID,
+		Limit  : int32(limit),
+	}
+
+	posts, err := s.db.GetPostForUser(context.Background(), getPostsArgs)
+	if err != nil {
+		return fmt.Errorf("Failed to get your posts: %v", err)
+	}
+
+	for _, post := range posts {
+		fmt.Printf("Title: %v\nUrl: %v\n", post.Title, post.Url)
+		fmt.Println("_______________________________________________")
+	}
+
+	return nil
+}
+
+	
